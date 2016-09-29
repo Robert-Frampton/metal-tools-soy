@@ -5,79 +5,36 @@ var del = require('del');
 var fs = require('fs');
 var metalToolsSoy = require('../index');
 var sinon = require('sinon');
-var vfs = require('vinyl-fs');
 
 describe('Metal Tools - Soy', function() {
-  beforeEach(function() {
-    var stream = {
-      pipe: function() {
-        return stream;
-      },
-      readable: true,
-      resume: sinon.stub()
-    };
-    sinon.stub(vfs, 'src').returns(stream);
-    sinon.stub(vfs, 'dest');
+  beforeEach(function(done) {
+    deleteCompiledSoyFiles(done);
   });
 
-  afterEach(function() {
-    restoreStream();
-  });
-
-	it('should compile soy files from/to "src" folder by default', function() {
-    metalToolsSoy();
-    assert.strictEqual('src/**/*.soy', vfs.src.args[0][0]);
-    assert.strictEqual('src', vfs.dest.args[0][0]);
+	after(function(done) {
+    deleteCompiledSoyFiles(done);
 	});
 
-  it('should consume stream by default', function() {
+	it('should compile specified soy files to js', function(done) {
     var stream = metalToolsSoy({
       src: 'test/fixtures/soy/simple.soy',
       dest: 'test/fixtures/soy'
     });
-    assert.strictEqual(1, stream.resume.callCount);
-  });
+    stream.on('end', function() {
+      assert.ok(fs.existsSync('test/fixtures/soy/simple.soy.js'));
+  		done();
+    });
+	});
 
-  it('should not consume stream if skipConsume is set to true', function() {
+  it('should emit error and end stream when the soy jar compiler throws an error', function(done) {
     var stream = metalToolsSoy({
-      src: 'test/fixtures/soy/simple.soy',
-      dest: 'test/fixtures/soy',
-      skipConsume: true
+      src: 'test/fixtures/soy/compileError.soy',
+      dest: 'test/fixtures/soy'
     });
-    assert.strictEqual(0, stream.resume.callCount);
-  });
-
-  describe('Integration', function() {
-    beforeEach(function(done) {
-      deleteCompiledSoyFiles(done);
-      restoreStream();
-    });
-
-  	after(function(done) {
-      deleteCompiledSoyFiles(done);
-  	});
-
-  	it('should compile specified soy files to js', function(done) {
-      var stream = metalToolsSoy({
-        src: 'test/fixtures/soy/simple.soy',
-        dest: 'test/fixtures/soy'
-      });
-      stream.on('end', function() {
-        assert.ok(fs.existsSync('test/fixtures/soy/simple.soy.js'));
-    		done();
-      });
-  	});
-
-    it('should emit error and end stream when the soy jar compiler throws an error', function(done) {
-      var stream = metalToolsSoy({
-        src: 'test/fixtures/soy/compileError.soy',
-        dest: 'test/fixtures/soy'
-      });
-      sinon.stub(console, 'error');
-      stream.on('end', function() {
-        assert.strictEqual(1, console.error.callCount);
-        done();
-      });
+    sinon.stub(console, 'error');
+    stream.on('end', function() {
+      assert.strictEqual(1, console.error.callCount);
+      done();
     });
   });
 });
@@ -86,13 +43,4 @@ function deleteCompiledSoyFiles(done) {
   del('test/fixtures/**/*.soy.js').then(function() {
     done();
   });
-}
-
-function restoreStream() {
-  if (vfs.src.restore) {
-    vfs.src.restore();
-  }
-  if (vfs.dest.restore) {
-    vfs.dest.restore();
-  }
 }

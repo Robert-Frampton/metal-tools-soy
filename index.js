@@ -5,21 +5,27 @@ var consume = require('stream-consume');
 var defaultOptions = require('./lib/options');
 var gutil = require('gulp-util');
 var merge = require('merge');
-var vfs = require('vinyl-fs');
+var gulp = require('gulp');
 
-module.exports = function (options) {
+function buildSoy(options) {
 	options = merge({}, defaultOptions, options);
-	var stream = vfs.src(options.src)
+	return gulp.src(options.src)
 		.pipe(compileSoy(options).on('error', handleError))
-		.pipe(vfs.dest(options.dest));
-	if (!options.skipConsume) {
-		consume(stream);
-	}
-	return stream;
-};
+		.pipe(gulp.dest(options.dest));
+}
 
 function handleError(error) {
 	var source = error.plugin || 'metal-tools-soy';
 	console.error(new gutil.PluginError(source, error.message).toString());
 	this.emit('end'); // jshint ignore:line
 }
+
+module.exports = function(options) {
+	var stream = buildSoy(options);
+	consume(stream);
+	return stream;
+};
+
+module.exports.TASKS = [
+	{name: 'soy', handler: buildSoy}
+];
