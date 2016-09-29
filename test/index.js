@@ -26,6 +26,19 @@ describe('Metal Tools - Soy', function() {
     });
 	});
 
+	it('should compile specified soy files to js from soySrc and soyDest first', function(done) {
+    var stream = metalToolsSoy({
+			soySrc: 'test/fixtures/soy/simple.soy',
+			soyDest: 'test/fixtures/soy',
+	    src: 'test/fixtures/none/simple.soy',
+      dest: 'test/fixtures/none'
+    });
+    stream.on('end', function() {
+      assert.ok(fs.existsSync('test/fixtures/soy/simple.soy.js'));
+  		done();
+    });
+	});
+
   it('should emit error and end stream when the soy jar compiler throws an error', function(done) {
     var stream = metalToolsSoy({
       src: 'test/fixtures/soy/compileError.soy',

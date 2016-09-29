@@ -9,9 +9,9 @@ var gulp = require('gulp');
 
 function buildSoy(options) {
 	options = merge({}, defaultOptions, options);
-	return gulp.src(options.src)
+	return gulp.src(options.soySrc || options.src)
 		.pipe(compileSoy(options).on('error', handleError))
-		.pipe(gulp.dest(options.dest));
+		.pipe(gulp.dest(options.soyDest || options.dest));
 }
 
 function handleError(error) {
